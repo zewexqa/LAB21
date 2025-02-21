@@ -1,66 +1,239 @@
 #include <windows.h>
 
-/* This is where all the input to the window goes to */
-LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) {
-	switch(Message) {
-		
-		/* Upon destruction, tell the main thread to stop */
-		case WM_DESTROY: {
-			PostQuitMessage(0);
-			break;
-		}
-		
-		/* All other messages (a lot of them) are processed using default procedures */
-		default:
-			return DefWindowProc(hwnd, Message, wParam, lParam);
-	}
-	return 0;
+#include <stdio.h>
+
+
+
+#define ID_INPUT1 1
+
+#define ID_INPUT2 2
+
+#define ID_ADD 3
+
+#define ID_SUBTRACT 4
+
+#define ID_MULTIPLY 5
+
+#define ID_DIVIDE 6
+
+
+
+HWND hInput1, hInput2;
+
+
+
+// ฟังก์ชันคำนวณและแสดงผลลัพธ์
+
+void Calculate(HWND hwnd, char op) {
+
+    char buffer1[50], buffer2[50];
+
+    double num1, num2, result;
+
+
+
+    GetWindowText(hInput1, buffer1, 50);
+
+    GetWindowText(hInput2, buffer2, 50);
+
+
+
+    num1 = atof(buffer1);
+
+    num2 = atof(buffer2);
+
+
+
+    switch (op) {
+
+        case '+': result = num1 + num2; break;
+
+        case '-': result = num1 - num2; break;
+
+        case '*': result = num1 * num2; break;
+
+        case '/':
+
+            if (num2 == 0) {
+
+                MessageBox(hwnd, "Cannot divide by zero!", "Error", MB_ICONERROR);
+
+                return;
+
+            }
+
+            result = num1 / num2;
+
+            break;
+
+    }
+
+
+
+    char resultText[100];
+
+    sprintf(resultText, "%.6f", result);
+
+    MessageBox(hwnd, resultText, "Result", MB_OK);
+
 }
 
-/* The 'main' function of Win32 GUI programs: this is where execution starts */
+
+
+// ฟังก์ชันหลักของ Window
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+
+    switch (msg) {
+
+        case WM_CREATE:
+
+            // ข้อความบนหน้าต่าง
+
+            CreateWindow("STATIC", "Please input two numbers",
+
+                         WS_CHILD | WS_VISIBLE | WS_BORDER,
+
+                         30, 10, 180, 20, hwnd, NULL, NULL, NULL);
+
+
+
+            // ช่องกรอกตัวเลข
+
+            hInput1 = CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER,
+
+                                   40, 40, 160, 25, hwnd, (HMENU) ID_INPUT1, NULL, NULL);
+
+            hInput2 = CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER,
+
+                                   40, 70, 160, 25, hwnd, (HMENU) ID_INPUT2, NULL, NULL);
+
+
+
+            // ปุ่มคำนวณ
+
+            CreateWindow("BUTTON", "+", WS_CHILD | WS_VISIBLE,
+
+                         40, 110, 30, 30, hwnd, (HMENU) ID_ADD, NULL, NULL);
+
+            CreateWindow("BUTTON", "-", WS_CHILD | WS_VISIBLE,
+
+                         80, 110, 30, 30, hwnd, (HMENU) ID_SUBTRACT, NULL, NULL);
+
+            CreateWindow("BUTTON", "*", WS_CHILD | WS_VISIBLE,
+
+                         120, 110, 30, 30, hwnd, (HMENU) ID_MULTIPLY, NULL, NULL);
+
+            CreateWindow("BUTTON", "/", WS_CHILD | WS_VISIBLE,
+
+                         160, 110, 30, 30, hwnd, (HMENU) ID_DIVIDE, NULL, NULL);
+
+            break;
+
+
+
+        case WM_COMMAND:
+
+            switch (LOWORD(wParam)) {
+
+                case ID_ADD: Calculate(hwnd, '+'); break;
+
+                case ID_SUBTRACT: Calculate(hwnd, '-'); break;
+
+                case ID_MULTIPLY: Calculate(hwnd, '*'); break;
+
+                case ID_DIVIDE: Calculate(hwnd, '/'); break;
+
+            }
+
+            break;
+
+
+
+        case WM_CTLCOLORSTATIC:  // เปลี่ยนสีพื้นหลังของ Static Text
+
+            SetBkMode((HDC) wParam, TRANSPARENT);
+
+            return (LRESULT) CreateSolidBrush(RGB(255, 255, 255));
+
+
+
+        case WM_CLOSE:
+
+            DestroyWindow(hwnd);
+
+            break;
+
+
+
+        case WM_DESTROY:
+
+            PostQuitMessage(0);
+
+            break;
+
+
+
+        default:
+
+            return DefWindowProc(hwnd, msg, wParam, lParam);
+
+    }
+
+    return 0;
+
+}
+
+
+
+// ฟังก์ชัน WinMain (เริ่มโปรแกรม)
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-	WNDCLASSEX wc; /* A properties struct of our window */
-	HWND hwnd; /* A 'HANDLE', hence the H, or a pointer to our window */
-	MSG msg; /* A temporary location for all messages */
 
-	/* zero out the struct and set the stuff we want to modify */
-	memset(&wc,0,sizeof(wc));
-	wc.cbSize	 = sizeof(WNDCLASSEX);
-	wc.lpfnWndProc	 = WndProc; /* This is where we will send messages to */
-	wc.hInstance	 = hInstance;
-	wc.hCursor	 = LoadCursor(NULL, IDC_ARROW);
-	
-	/* White, COLOR_WINDOW is just a #define for a system color, try Ctrl+Clicking it */
-	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-	wc.lpszClassName = "WindowClass";
-	wc.hIcon	 = LoadIcon(NULL, IDI_APPLICATION); /* Load a standard icon */
-	wc.hIconSm	 = LoadIcon(NULL, IDI_APPLICATION); /* use the name "A" to use the project icon */
+    WNDCLASS wc = { 0 };
 
-	if(!RegisterClassEx(&wc)) {
-		MessageBox(NULL, "Window Registration Failed!","Error!",MB_ICONEXCLAMATION|MB_OK);
-		return 0;
-	}
+    wc.lpfnWndProc = WndProc;
 
-	hwnd = CreateWindowEx(WS_EX_CLIENTEDGE,"WindowClass","Caption",WS_VISIBLE|WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, /* x */
-		CW_USEDEFAULT, /* y */
-		640, /* width */
-		480, /* height */
-		NULL,NULL,hInstance,NULL);
+    wc.hInstance = hInstance;
 
-	if(hwnd == NULL) {
-		MessageBox(NULL, "Window Creation Failed!","Error!",MB_ICONEXCLAMATION|MB_OK);
-		return 0;
-	}
+    wc.hbrBackground = CreateSolidBrush(RGB(255, 255, 96)); // พื้นหลังสีชมพูเข้ม
 
-	/*
-		This is the heart of our program where all input is processed and 
-		sent to WndProc. Note that GetMessage blocks code flow until it receives something, so
-		this loop will not produce unreasonably high CPU usage
-	*/
-	while(GetMessage(&msg, NULL, 0, 0) > 0) { /* If no error is received... */
-		TranslateMessage(&msg); /* Translate key codes to chars if present */
-		DispatchMessage(&msg); /* Send it to WndProc */
-	}
-	return msg.wParam;
+    wc.lpszClassName = "CalculatorClass";
+
+
+
+    RegisterClass(&wc);
+
+
+
+    HWND hwnd = CreateWindow("CalculatorClass", "My Calculator",
+
+                             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+
+                             CW_USEDEFAULT, CW_USEDEFAULT, 250, 200,
+
+                             NULL, NULL, hInstance, NULL);
+
+
+
+    ShowWindow(hwnd, nCmdShow);
+
+    UpdateWindow(hwnd);
+
+
+
+    MSG msg;
+
+    while (GetMessage(&msg, NULL, 0, 0)) {
+
+        TranslateMessage(&msg);
+
+        DispatchMessage(&msg);
+
+    }
+
+
+
+    return msg.wParam;
+
 }
